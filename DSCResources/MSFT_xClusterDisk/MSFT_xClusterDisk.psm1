@@ -1,5 +1,5 @@
 Import-Module -Name (Join-Path -Path (Split-Path -Path $PSScriptRoot -Parent) `
-                               -ChildPath 'CommonResourceHelper.psm1')
+        -ChildPath 'CommonResourceHelper.psm1')
 
 $script:localizedData = Get-LocalizedData -ResourceName 'MSFT_xClusterDisk'
 
@@ -18,21 +18,21 @@ function Get-TargetResource
     (
         [Parameter(Mandatory = $true)]
         [System.String]
-        $Number
+        $UniqueID
     )
 
-    Write-Verbose -Message ($script:localizedData.GetClusterDiskInformation -f $Number)
+    Write-Verbose -Message ($script:localizedData.GetClusterDiskInformation -f $UniqueID)
 
     if ($null -ne ($diskInstance = Get-CimInstance -ClassName MSCluster_Disk -Namespace 'Root\MSCluster' -Filter "Number = $Number"))
     {
         $diskResource = Get-ClusterResource |
-                            Where-Object -FilterScript { $_.ResourceType -eq 'Physical Disk' } |
-                                Where-Object -FilterScript { ($_ | Get-ClusterParameter -Name DiskIdGuid).Value -eq $diskInstance.Id }
+            Where-Object -FilterScript { $_.ResourceType -eq 'Physical Disk' } |
+            Where-Object -FilterScript { ($_ | Get-ClusterParameter -Name DiskIdGuid).Value -eq $diskInstance.Id }
 
         @{
-            Number = $Number
-            Ensure = 'Present'
-            Label  = $diskResource.Name
+            UniqueID = $UniqueID
+            Ensure   = 'Present'
+            Label    = $diskResource.Name
         }
     }
     else
@@ -100,9 +100,9 @@ function Set-TargetResource
 
             $diskResource = Get-ClusterResource |
                 Where-Object -FilterScript { $_.ResourceType -eq 'Physical Disk' } |
-                    Where-Object -FilterScript {
-                        ($_ | Get-ClusterParameter -Name DiskIdGuid).Value -eq $diskInstance.Id
-                    }
+                Where-Object -FilterScript {
+                ($_ | Get-ClusterParameter -Name DiskIdGuid).Value -eq $diskInstance.Id
+            }
 
             # Set the label of the cluster disk
             $diskResource.Name = $Label
@@ -119,9 +119,9 @@ function Set-TargetResource
 
             $diskResource = Get-ClusterResource |
                 Where-Object -FilterScript { $_.ResourceType -eq 'Physical Disk' } |
-                    Where-Object -FilterScript {
-                        ($_ | Get-ClusterParameter -Name DiskIdGuid).Value -eq $diskInstance.Id
-                    }
+                Where-Object -FilterScript {
+                ($_ | Get-ClusterParameter -Name DiskIdGuid).Value -eq $diskInstance.Id
+            }
 
             # Remove the cluster disk
             $diskResource | Remove-ClusterResource -Force
@@ -169,7 +169,7 @@ function Test-TargetResource
 
     $getTargetResourceResult = Get-TargetResource -Number $Number
 
-    if($Ensure -eq 'Present')
+    if ($Ensure -eq 'Present')
     {
         return (
             ($Ensure -eq $getTargetResourceResult.Ensure) -and
