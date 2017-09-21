@@ -5,6 +5,64 @@ $script:localizedData = Get-LocalizedData -ResourceName 'MSFT_xClusterDisk'
 
 <#
     .SYNOPSIS
+        Returns a failover cluster disk resource object with the UniqueID
+
+    .PARAMETER UniqueId
+        The disk UniqueId of the cluster disk.
+#>
+
+function Get-DiskResource
+{
+    [CmdletBinding()]
+    param
+    (
+        [Parameter(Mandatory = $true)]
+        [System.String]
+        $UniqueId
+    )
+
+    $diskInstance = Get-CimInstance -ClassName MSCluster_Disk -Namespace 'Root\MSCluster' -Filter "UniqueId = '$UniqueID'"
+    $diskResource = Get-ClusterResource |
+        Where-Object -FilterScript { $_.ResourceType -eq 'Physical Disk' } |
+        Where-Object -FilterScript {
+        ($_ | Get-ClusterParameter -Name DiskIdGuid).Value -eq $diskInstance.Id
+    }
+    $diskResource
+}
+<#
+    .SYNOPSIS
+        Sets the Label of
+
+    .PARAMETER UniqueId
+        The disk UniqueId of the cluster disk.
+
+    .PARAMETER Label
+        The disk label that should be assigned to the disk on the Failover Cluster
+        disk resource.
+#>
+
+function Set-DiskResourceLabel
+{
+    [CmdletBinding()]
+    param
+    (
+        [Parameter(Mandatory = $true)]
+        [System.String]
+        $UniqueId,
+        [Parameter(Mandatory = $true)]
+        [System.String]
+        $Label
+    )
+
+    $diskResource = Get-DiskResource -UniqueId $UniqueID
+
+    # Set the label of the cluster disk
+    $diskResource.Name = $Label
+    $diskResource.Update()
+}
+
+<#
+    .SYNOPSIS
         Returns the current state of the failover cluster disk resource.
 
     .PARAMETER UniqueId
@@ -23,12 +81,8 @@ function Get-TargetResource
 
     Write-Verbose -Message ($script:localizedData.GetClusterDiskInformation -f $UniqueId)
 
-    if ($null -ne ($diskInstance = Get-CimInstance -ClassName MSCluster_Disk -Namespace 'Root\MSCluster' -Filter "UniqueId = '$UniqueID'"))
+    if ($null -ne ($diskResource = Get-DiskResource -UniqueId $UniqueID))
     {
-        $diskResource = Get-ClusterResource |
-            Where-Object -FilterScript { $_.ResourceType -eq 'Physical Disk' } |
-            Where-Object -FilterScript { ($_ | Get-ClusterParameter -Name DiskIdGuid).Value -eq $diskInstance.Id }
-
         @{
             UniqueId = $UniqueId
             Ensure   = 'Present'
@@ -47,7 +101,7 @@ function Get-TargetResource
 
 <#
     .SYNOPSIS
-        Adds or removed the failover cluster disk resource from the failover cluster.
+        Adds or removes the failover cluster disk resource from the failover cluster.
 
     .PARAMETER UniqueId
         The disk UniqueId of the cluster disk.
@@ -96,17 +150,7 @@ function Set-TargetResource
         {
             Write-Verbose -Message ($script:localizedData.SetDiskLabel -f $UniqueId, $Label)
 
-            $diskInstance = Get-CimInstance -ClassName MSCluster_Disk -Namespace 'Root\MSCluster' -Filter "UniqueId = '$UniqueID'"
-
-            $diskResource = Get-ClusterResource |
-                Where-Object -FilterScript { $_.ResourceType -eq 'Physical Disk' } |
-                Where-Object -FilterScript {
-                ($_ | Get-ClusterParameter -Name DiskIdGuid).Value -eq $diskInstance.Id
-            }
-
-            # Set the label of the cluster disk
-            $diskResource.Name = $Label
-            $diskResource.Update()
+            Set-DiskResourceLabel -UniqueId $UniqueID -Label $Label
         }
     }
     else
@@ -115,13 +159,7 @@ function Set-TargetResource
         {
             Write-Verbose -Message ($script:localizedData.RemoveDiskFromCluster -f $UniqueId)
 
-            $diskInstance = Get-CimInstance -ClassName MSCluster_Disk -Namespace 'Root\MSCluster' -Filter "UniqueId = '$UniqueID'"
-
-            $diskResource = Get-ClusterResource |
-                Where-Object -FilterScript { $_.ResourceType -eq 'Physical Disk' } |
-                Where-Object -FilterScript {
-                ($_ | Get-ClusterParameter -Name DiskIdGuid).Value -eq $diskInstance.Id
-            }
+            $diskResource = Get-DiskResource -UniqueId $UniqueID
 
             # Remove the cluster disk
             $diskResource | Remove-ClusterResource -Force
