@@ -47,31 +47,31 @@ try
         $mockDisk_WrongLabel = 'Wrong Label'
 
         $mockTestParameter_ShouldBePresentAndDiskExist = @{
-            Number = $mockDiskNumber
+            UniqueID = $mockDiskNumber
             Ensure = 'Present'
             Label  = $mockDiskLabel
         }
 
         $mockTestParameter_ShouldBeAbsentButDiskExist = @{
-            Number = $mockDiskNumber
+            UniqueID = $mockDiskNumber
             Ensure = 'Absent'
             Label  = $mockDiskLabel
         }
 
         $mockTestParameter_ShouldBePresentButDiskDoesNotExist = @{
-            Number = $mockNewDisk_Number
+            UniqueID = $mockNewDisk_Number
             Ensure = 'Present'
             Label  = $mockNewDisk_Label
         }
 
         $mockTestParameter_ShouldBeAbsentAndDiskDoesNotExist = @{
-            Number = '3'
+            UniqueID = '3'
             Ensure = 'Absent'
             Label  = 'Third Data'
         }
 
         $mockTestParameter_ShouldBePresentAndDiskExistButWrongLabel = @{
-            Number = $mockDiskNumber
+            UniqueID = $mockDiskNumber
             Ensure = 'Present'
             Label  = $mockDisk_WrongLabel
         }
@@ -79,7 +79,7 @@ try
         $mockCimInstance = {
             switch ($Filter)
             {
-                "Number = $mockDiskNumber"
+                "UniqueID = '$mockDiskNumber'"
                 {
                     [PSCustomObject] @{
                         Name = $mockDiskLabel
@@ -138,10 +138,47 @@ try
         $mockGetClusterAvailableDisk = {
             @(
                 [PSCustomObject] @{
-                    Number = $mockNewDisk_Number
+                    UniqueID = $mockNewDisk_Number
                 }
             )
         }
+
+        $mockGetDisk_2 = {
+            @(
+                [PScustomObject] @{
+                    Number = $mockDiskNumber
+                    UniqueID = $mockDiskNumber
+                }
+            ),
+            @(
+                [PScustomObject] @{
+                    Number = $mockNewDisk_Number
+                    UniqueID = $mockNewDisk_Number
+                }
+            )
+        }
+
+        $mockGetDisk = {
+            switch ($InputObject.UniqueID)
+            {
+                $mockDiskNumber
+                {
+                    [PScustomObject] @{
+                        Number = $mockDiskNumber
+                        UniqueID = $mockDiskNumber
+                    }
+                }
+
+                $mockNewDisk_Number
+                {
+                    [PScustomObject] @{
+                        Number = $mockNewDisk_Number
+                        UniqueID = $mockNewDisk_Number
+                    }
+                }
+            }
+        }
+
         Describe 'xClusterDisk\Get-TargetResource' {
             BeforeAll {
                 Mock -CommandName 'Get-CimInstance' -MockWith $mockCimInstance -ParameterFilter $mockCimInstance_ParameterFilter
@@ -153,7 +190,7 @@ try
                 Context 'When Ensure is set to ''Present'' but the disk is not present' {
                     BeforeEach {
                         $mockTestParameters = @{
-                            Number = $mockNewDisk_Number
+                            UniqueID = $mockNewDisk_Number
                         }
                     }
 
@@ -164,7 +201,7 @@ try
 
                     It 'Should return the same values as passed as parameters' {
                         $getTargetResourceResult = Get-TargetResource @mockTestParameters
-                        $getTargetResourceResult.Number | Should Be $mockTestParameters.Number
+                        $getTargetResourceResult.UniqueID | Should Be $mockTestParameters.UniqueID
                     }
 
                     It 'Should return the disk as absent' {
@@ -177,13 +214,13 @@ try
                 Context 'When Ensure is set to ''Absent'' and the disk is present' {
                     BeforeEach {
                         $mockTestParameters = @{
-                            Number = $mockDiskNumber
+                            UniqueID = $mockDiskNumber
                         }
                     }
 
                     It 'Should return the same values as passed as parameters' {
                         $getTargetResourceResult = Get-TargetResource @mockTestParameters
-                        $getTargetResourceResult.Number | Should Be $mockTestParameters.Number
+                        $getTargetResourceResult.UniqueID | Should Be $mockTestParameters.UniqueID
                     }
 
                     It 'Should return the disk as present' {
@@ -196,13 +233,13 @@ try
                 Context 'When Ensure is set to ''Present'' and the disk is present but has the wrong label' {
                     BeforeEach {
                         $mockTestParameters = @{
-                            Number = $mockDiskNumber
+                            UniqueID = $mockDiskNumber
                         }
                     }
 
                     It 'Should return the same values as passed as parameters' {
                         $getTargetResourceResult = Get-TargetResource @mockTestParameters
-                        $getTargetResourceResult.Number | Should Be $mockTestParameters.Number
+                        $getTargetResourceResult.UniqueID | Should Be $mockTestParameters.UniqueID
                     }
 
                     It 'Should return the correct value for property Ensure' {
@@ -222,7 +259,7 @@ try
                 Context 'When Ensure is set to ''Present'' and the disk is present' {
                     BeforeEach {
                         $mockTestParameters = @{
-                            Number = $mockDiskNumber
+                            UniqueID = $mockDiskNumber
                         }
                     }
 
@@ -242,7 +279,7 @@ try
                 Context 'When Ensure is set to ''Absent'' and the disk is not present' {
                     BeforeEach {
                         $mockTestParameters = @{
-                            Number = $mockNewDisk_Number
+                            UniqueID = $mockNewDisk_Number
                         }
                     }
 
@@ -317,6 +354,7 @@ try
                 Mock -CommandName 'Get-ClusterAvailableDisk' -MockWith $mockGetClusterAvailableDisk
                 Mock -CommandName 'Add-ClusterDisk'
                 Mock -CommandName 'Remove-ClusterResource'
+                Mock -CommandName 'Get-Disk' -MockWith $mockGetDisk
             }
 
             Context 'When the system is not in the desired state' {
