@@ -14,14 +14,14 @@ Configuration Example
     {
         xClusterDisk 'AddClusterDisk-SQL2017-DATA'
         {
-            Number = 1
+            UniqueID = 1
             Ensure = 'Absent'
             Label  = 'SQL2016-DATA'
         }
 
         xClusterDisk 'AddClusterDisk-SQL2017-LOG'
         {
-            Number = 2
+            UniqueID = 2
             Ensure = 'Absent'
             Label  = 'SQL2016-LOG'
         }
